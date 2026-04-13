@@ -1,0 +1,35 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: studybuddy-db
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: studybuddy123
+      POSTGRES_DB: studybuddy
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./database.sql:/docker-entrypoint-initdb.d/database.sql
+      - postgres_data:/var/lib/postgresql/data
+
+  api:
+    build: .
+    container_name: studybuddy-api
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      PORT: 3000
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: studybuddy
+      DB_USER: postgres
+      DB_PASSWORD: studybuddy123
+      JWT_SECRET: studybuddy_jwt_secret_2026
+      JWT_EXPIRES_IN: 24h
+    depends_on:
+      - db
+
+volumes:
+  postgres_data:
