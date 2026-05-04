@@ -1,9 +1,11 @@
 # StudyBuddy — Backend
 
-**Course:** Základy mobilných a bezdrôtových technológií | LS 2026
+**Course:** Základy mobilných a bezdrôtových technológií | LS 2026  
 **Student:** Aleksa Sabljic
 
-REST API for the StudyBuddy mobile application, built with Node.js, Express, PostgreSQL, and WebSockets.
+REST API + WebSocket server for the StudyBuddy mobile application, built with Node.js, Express, and PostgreSQL.
+
+The frontend (Flutter) supports both Android and Chrome (PVP1). The backend serves both platforms identically — no platform-specific logic is required on the server side.
 
 ---
 
@@ -16,37 +18,67 @@ REST API for the StudyBuddy mobile application, built with Node.js, Express, Pos
 
 ---
 
-## Running the Backend
+## Running with Docker (recommended)
 
-### Option 1 — Docker (recommended, no PostgreSQL setup needed)
+The easiest way to run the project — no manual PostgreSQL setup needed.
 
-```
+### Requirements
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/)
+
+### Steps
+```bash
 docker-compose up --build
 ```
 
-The API will be available at http://localhost:3000
+The API will be running at:
+- API: http://localhost:3000
+- Swagger docs: http://localhost:3000/api-docs
+- WebSocket: ws://localhost:3000
 
 To stop:
-
-```
+```bash
 docker-compose down
-```
-
-### Option 2 — Manual setup
-
-```
-npm install
-psql -U postgres -c "CREATE DATABASE studybuddy;"
-psql -U postgres -d studybuddy -f database.sql
-cp .env.example .env
-node server.js
 ```
 
 ---
 
-## API Endpoints (15 total)
+## Manual Setup
 
-Full interactive documentation at http://localhost:3000/api-docs
+### 1. Install dependencies
+```bash
+npm install
+```
+
+### 2. Create PostgreSQL database
+```bash
+psql -U postgres -c "CREATE DATABASE studybuddy;"
+psql -U postgres -d studybuddy -f database.sql
+```
+
+### 3. Configure environment
+
+Create a `.env` file in the project root:
+
+```
+PORT=3000
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=studybuddy
+DB_USER=postgres
+DB_PASSWORD=your_postgres_password
+JWT_SECRET=your_jwt_secret
+JWT_EXPIRES_IN=24h
+```
+
+### 4. Start the server
+```bash
+npm start          # production
+npm run dev        # development with auto-reload (nodemon)
+```
+
+---
+
+## API Endpoints
 
 | Method | Endpoint | Auth | Role | Description |
 |--------|----------|------|------|-------------|
@@ -68,23 +100,44 @@ Full interactive documentation at http://localhost:3000/api-docs
 
 ---
 
+## WebSocket — Group Chat
+
+Runs on the same port as HTTP (3000).  
+Connect with: `ws://localhost:3000?token=<jwt>`
+
+On connect, the last 50 messages are sent as history. All messages are saved to the database and persist across reconnects.
+
+```json
+// Send
+{ "type": "message", "text": "Hello!" }
+
+// Receive
+{ "type": "message", "text": "Hello!", "username": "alice", "userId": 1, "timestamp": "..." }
+
+// On connect
+{ "type": "history", "messages": [ ... ] }
+```
+
+---
+
+## Roles
+
+| Role | Permissions |
+|------|-------------|
+| group_leader | Full CRUD on tasks, upload/download files, chat |
+| student | View assigned tasks only, upload/download files, chat |
+
+---
+
 ## Database Tables
 
 | Table | Purpose |
 |-------|---------|
 | users | User accounts with roles |
 | tasks | Study tasks with assignment |
-| files | Uploaded study materials |
+| task_files | Uploaded study materials |
 | chat_messages | Persistent group chat history |
 | user_locations | Active GPS locations (auto-expires after 5 min) |
-
----
-
-## WebSocket Chat
-
-Runs on the same port as HTTP (3000).
-Connect with: ws://localhost:3000?token=JWT_TOKEN
-On connect, the last 50 messages are sent as history. All messages are saved to the database and persist across reconnects.
 
 ---
 
